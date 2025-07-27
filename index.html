@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="ar">
+<head>
+  <meta charset="UTF-8">
+  <title>إرسال الواجب</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <h1>إرسال الواجب</h1>
+  <form id="form" enctype="multipart/form-data">
+    <input type="text" name="studentName" placeholder="اسم الطالب" required>
+    <input type="file" name="homeworkFile" required>
+    <button type="submit">إرسال</button>
+  </form>
+  <p id="message"></p>
+
+  <script>
+    const form = document.getElementById('form');
+    const message = document.getElementById('message');
+
+    async function checkStatus() {
+      const res = await fetch('/status');
+      const data = await res.json();
+      if (!data.isOpen) {
+        message.textContent = "🚫 تم إغلاق صفحة الإرسال من قبل المعلم.";
+        form.style.display = 'none';
+      }
+    }
+
+    checkStatus();
+
+    form.onsubmit = async (e) => {
+      e.preventDefault();
+      const formData = new FormData(form);
+      const res = await fetch('/upload', {
+        method: 'POST',
+        body: formData
+      });
+
+      const result = await res.text();
+      message.textContent = result;
+      form.reset();
+    };
+  </script>
+</body>
+</html>
