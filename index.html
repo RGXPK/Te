@@ -1,46 +1,168 @@
 <!DOCTYPE html>
-<html lang="ar">
+<html lang="ar" dir="rtl">
 <head>
-  <meta charset="UTF-8">
-  <title>إرسال الواجب</title>
-  <link rel="stylesheet" href="style.css">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>لوحة التحكم</title>
+<meta name="robots" content="noindex,nofollow">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;700;800&display=swap">
+<style>
+:root{--bg:#000;--panel:#111;--line:#2b2b2b;--ink:#f3f1e7;--mute:#9a9a9a;--gold:#e8c65a;--red:#ff8a7a;--up:#5fd08a;
+box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+:root[data-theme="dark"]{--bg:#000;--panel:#111;--line:#2b2b2b;--ink:#f3f1e7;--mute:#9a9a9a;--gold:#e8c65a;--red:#ff8a7a;--up:#5fd08a}
+*{box-sizing:border-box}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:'Tajawal',Tahoma,sans-serif;line-height:1.6}
+main{max-width:860px;margin:0 auto;padding:20px 14px 40px}
+h1{font-size:2rem;font-weight:800;margin:0 0 4px}
+h2{font-size:1.1rem;margin:0 0 10px}
+.sub{color:var(--mute);margin:0 0 18px}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:14px;margin-bottom:16px}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+input,select,button{font:inherit;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:6px;padding:8px 10px}
+input:focus-visible,select:focus-visible,button:focus-visible{outline:2px solid var(--gold);outline-offset:1px}
+input[type=text]{flex:1;min-width:140px}
+input[type=number]{width:60px;text-align:center}
+button{cursor:pointer;font-weight:700}
+button.main{background:var(--gold);color:#1a1a10;border-color:var(--gold)}
+button.x{padding:2px 8px;color:var(--red);border-color:transparent;background:transparent}
+.score{display:flex;align-items:center;gap:6px}
+.wrap{overflow-x:auto}
+table{width:100%;border-collapse:collapse;min-width:640px;text-align:center}
+th,td{padding:9px 6px;border-bottom:1px solid var(--line);white-space:nowrap}
+th{color:var(--mute);font-weight:400;font-size:.85rem}
+td.name{text-align:right;font-weight:700}
+td.pts{font-weight:800;font-size:1.1rem;color:var(--gold)}
+tr:first-child td:first-child{box-shadow:inset -4px 0 0 var(--gold)}
+.ded input{width:52px;padding:3px}
+.neg{color:var(--red)}.pos{color:var(--up)}
+.empty{color:var(--mute);text-align:center;padding:18px}
+ul{list-style:none;margin:0;padding:0}
+li.m{display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid var(--line)}
+</style>
 </head>
 <body>
-  <h1>إرسال الواجب</h1>
-  <form id="form" enctype="multipart/form-data">
-    <input type="text" name="studentName" placeholder="اسم الطالب" required>
-    <input type="file" name="homeworkFile" required>
-    <button type="submit">إرسال</button>
-  </form>
-  <p id="message"></p>
+<main>
+<h1>لوحة تحكم الدوري</h1>
+<p class="sub">سجّل الدخول لإدارة الجدول.</p>
 
-  <script>
-    const form = document.getElementById('form');
-    const message = document.getElementById('message');
+<section class="panel adm" hidden>
+<h2>إضافة فريق</h2>
+<div class="row">
+<input type="text" id="tn" placeholder="اسم الفريق" maxlength="30">
+<button class="main" id="addT">إضافة فريق</button>
+</div>
+</section>
 
-    async function checkStatus() {
-      const res = await fetch('/status');
-      const data = await res.json();
-      if (!data.isOpen) {
-        message.textContent = "🚫 تم إغلاق صفحة الإرسال من قبل المعلم.";
-        form.style.display = 'none';
-      }
-    }
+<section class="panel adm" hidden>
+<h2>تسجيل مباراة</h2>
+<div class="row">
+<select id="h"></select>
+<div class="score"><input type="number" id="hs" min="0" value="0" aria-label="أهداف صاحب الأرض"><span>-</span><input type="number" id="as" min="0" value="0" aria-label="أهداف الضيف"></div>
+<select id="a"></select>
+<button class="main" id="addM">حفظ النتيجة</button>
+</div>
+<p id="err" class="neg" style="margin:8px 0 0"></p>
+</section>
 
-    checkStatus();
+<section class="panel adm" hidden>
+<h2>الترتيب</h2>
+<div class="wrap"><table>
+<thead><tr><th>#</th><th style="text-align:right">الفريق</th><th>لعب</th><th>فوز</th><th>تعادل</th><th>خسارة</th><th>له</th><th>عليه</th><th>فارق</th><th>خصم</th><th>نقاط</th><th></th></tr></thead>
+<tbody id="tb"></tbody>
+</table></div>
+</section>
 
-    form.onsubmit = async (e) => {
-      e.preventDefault();
-      const formData = new FormData(form);
-      const res = await fetch('/upload', {
-        method: 'POST',
-        body: formData
-      });
-
-      const result = await res.text();
-      message.textContent = result;
-      form.reset();
-    };
-  </script>
+<section class="panel adm" hidden>
+<h2>المباريات</h2>
+<ul id="ml"></ul>
+</section>
+<div class="panel adm" hidden>
+<h2>لوحة المشرف</h2>
+<div class="row"><button id="reset">مسح كل البيانات</button><button id="out">تسجيل الخروج</button></div>
+<p class="sub" style="margin:8px 0 0">أي تعديل يظهر للزوار فوراً.</p>
+</div>
+<div id="lg" style="text-align:center">
+<form id="lf" class="row" style="justify-content:center;margin-top:10px">
+<input type="text" id="em" placeholder="البريد الإلكتروني" dir="ltr" autocomplete="username">
+<input type="password" id="ps" placeholder="كلمة السر" dir="ltr" autocomplete="current-password" style="width:150px">
+<button class="main" type="submit">دخول</button>
+</form>
+<p id="lerr" class="neg"></p>
+</div>
+</main>
+<script type="module">
+import{initializeApp}from"https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import{getAuth,signInWithEmailAndPassword,signOut,onAuthStateChanged}from"https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+import{getFirestore,doc,setDoc,onSnapshot}from"https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+const app=initializeApp({apiKey:"AIzaSyD008jyGkrA4cgjHr85zzJhO0njeF6RKJY",authDomain:"sex99-1f57c.firebaseapp.com",projectId:"sex99-1f57c",storageBucket:"sex99-1f57c.firebasestorage.app",messagingSenderId:"116641333183",appId:"1:116641333183:web:96c531d89b5f85a3796b0a"});
+const auth=getAuth(app),db=getFirestore(app),ref=doc(db,"league","main");
+let admin=false,S={teams:[],matches:[]};
+const $=id=>document.getElementById(id);
+const esc=s=>s.replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,6);
+const save=()=>setDoc(ref,{teams:S.teams,matches:S.matches}).catch(()=>alert('تعذّر الحفظ: ليس لديك صلاحية أو لا يوجد اتصال.'));
+onSnapshot(ref,d=>{if(d.exists()){S={teams:d.data().teams||[],matches:d.data().matches||[]}}render()},()=>{$('tb').innerHTML='<tr><td colspan="12" class="empty">تعذّر تحميل البيانات.</td></tr>'});
+const showLg=()=>{$('lg').hidden=admin};
+onAuthStateChanged(auth,u=>{admin=!!u;document.querySelectorAll('.adm').forEach(e=>e.hidden=!admin);showLg();render()});
+$('lf').onsubmit=async e=>{e.preventDefault();$('lerr').textContent='';
+  try{await signInWithEmailAndPassword(auth,$('em').value.trim(),$('ps').value);$('ps').value=''}
+  catch(x){$('lerr').textContent='البريد أو كلمة السر غير صحيحة.'}};
+$('out').onclick=()=>signOut(auth);
+function stats(){
+  const m={};
+  S.teams.forEach(t=>m[t.id]={t,p:0,w:0,d:0,l:0,gf:0,ga:0});
+  S.matches.forEach(x=>{
+    const H=m[x.h],A=m[x.a];if(!H||!A)return;
+    H.p++;A.p++;H.gf+=x.hs;H.ga+=x.as;A.gf+=x.as;A.ga+=x.hs;
+    if(x.hs>x.as){H.w++;A.l++}else if(x.hs<x.as){A.w++;H.l++}else{H.d++;A.d++}
+  });
+  return Object.values(m).map(r=>({...r,gd:r.gf-r.ga,pts:r.w*3+r.d-(r.t.ded||0)}))
+    .sort((a,b)=>b.pts-a.pts||b.gd-a.gd||b.gf-a.gf||a.t.name.localeCompare(b.t.name,'ar'));
+}
+function render(){
+  const opts=S.teams.map(t=>`<option value="${t.id}">${esc(t.name)}</option>`).join('');
+  const hv=$('h').value,av=$('a').value;
+  $('h').innerHTML=opts;$('a').innerHTML=opts;
+  if(hv)$('h').value=hv;
+  if(av)$('a').value=av;else if(S.teams[1])$('a').value=S.teams[1].id;
+  const rows=stats();
+  $('tb').innerHTML=rows.length?rows.map((r,i)=>`<tr>
+    <td>${i+1}</td><td class="name">${esc(r.t.name)}</td><td>${r.p}</td><td>${r.w}</td><td>${r.d}</td><td>${r.l}</td>
+    <td>${r.gf}</td><td>${r.ga}</td><td class="${r.gd>0?'pos':r.gd<0?'neg':''}" dir="ltr">${r.gd>0?'+':''}${r.gd}</td>
+    <td class="ded">${admin?`<input type="number" min="0" value="${r.t.ded||0}" data-id="${r.t.id}" aria-label="خصم نقاط ${esc(r.t.name)}">`:(r.t.ded?'-'+r.t.ded:'0')}</td>
+    <td class="pts">${r.pts}</td>
+    <td>${admin?`<button class="x" data-del="${r.t.id}" aria-label="حذف ${esc(r.t.name)}">✕</button>`:''}</td></tr>`).join('')
+    :'<tr><td colspan="12" class="empty">لا توجد فرق بعد.</td></tr>';
+  const name=id=>(S.teams.find(t=>t.id===id)||{name:'؟'}).name;
+  $('ml').innerHTML=S.matches.length?S.matches.slice().reverse().map(x=>`<li class="m"><span>${esc(name(x.h))} <b dir="ltr">${x.hs} - ${x.as}</b> ${esc(name(x.a))}</span>${admin?`<button class="x" data-m="${x.id}" aria-label="حذف المباراة">✕</button>`:''}</li>`).join('')
+    :'<li class="empty">لا توجد مباريات بعد.</li>';
+}
+$('addT').onclick=()=>{
+  const n=$('tn').value.trim();if(!n)return;
+  if(S.teams.some(t=>t.name===n)){$('err').textContent='هذا الفريق موجود مسبقاً.';return}
+  $('err').textContent='';S.teams.push({id:uid(),name:n,ded:0});$('tn').value='';save();render();
+};
+$('tn').onkeydown=e=>{if(e.key==='Enter')$('addT').click()};
+$('addM').onclick=()=>{
+  const h=$('h').value,a=$('a').value;
+  if(S.teams.length<2){$('err').textContent='أضف فريقين على الأقل.';return}
+  if(h===a){$('err').textContent='اختر فريقين مختلفين.';return}
+  $('err').textContent='';
+  S.matches.push({id:uid(),h,a,hs:Math.max(0,+$('hs').value||0),as:Math.max(0,+$('as').value||0)});
+  $('hs').value=0;$('as').value=0;save();render();
+};
+$('tb').addEventListener('change',e=>{
+  const id=e.target.dataset.id;if(!id)return;
+  S.teams.find(t=>t.id===id).ded=Math.max(0,parseInt(e.target.value)||0);save();render();
+});
+document.addEventListener('click',e=>{
+  const d=e.target.dataset;
+  if(d.del&&confirm('حذف الفريق ومبارياته؟')){S.teams=S.teams.filter(t=>t.id!==d.del);S.matches=S.matches.filter(m=>m.h!==d.del&&m.a!==d.del);save();render()}
+  if(d.m){S.matches=S.matches.filter(m=>m.id!==d.m);save();render()}
+});
+$('reset').onclick=()=>{if(confirm('مسح كل الفرق والنتائج؟')){S={teams:[],matches:[]};save();render()}};
+render();
+</script>
 </body>
 </html>
